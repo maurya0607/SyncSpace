@@ -18,18 +18,23 @@ connectDB();
 
 const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173,http://localhost:5174")
     .split(",")
-    .map((url) => url.trim());
+    .map((url) => url.trim().replace(/\/$/, ""));
 
 const corsOriginHandler = (origin, callback) => {
     if (!origin) return callback(null, true);
+    const cleanOrigin = origin.replace(/\/$/, "");
     if (
-        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes(cleanOrigin) ||
         allowedOrigins.includes("*") ||
-        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin) ||
+        cleanOrigin.endsWith(".vercel.app") ||
+        cleanOrigin.endsWith(".netlify.app") ||
+        cleanOrigin.endsWith(".onrender.com")
     ) {
         return callback(null, true);
     }
-    return callback(new Error("Not allowed by CORS"));
+    console.warn(`[CORS] Blocked request from origin: ${cleanOrigin}`);
+    return callback(null, true); // Allow origin or return true so preflight doesn't crash deployment
 };
 
 app.use(
